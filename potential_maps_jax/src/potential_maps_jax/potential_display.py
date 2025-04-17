@@ -1,98 +1,123 @@
 import jax
 from jax import random
-key = random.key(31212417)
+
+
 
 from jax import numpy as jnp
 import matplotlib.pyplot as plt
 from functools import partial
 
-GRID_SIZE = 256
-GRID_X, GRID_Y = jnp.indices([GRID_SIZE, GRID_SIZE], dtype=jnp.float32)
-GRID_X -= jnp.median(GRID_X)
-GRID_Y-= jnp.median(GRID_Y)
-COORD_X = jnp.unique(GRID_X.flatten())
-COORD_Y = jnp.unique(GRID_Y.flatten())
-NUM_POINTS = 512
 
-# PARTICLE_LOCS = jnp.asarray(((-7,0), (7,0), (3.5,-4), (6.1,6)))
-X_R = jax.random.choice(key, a = jnp.arange(-GRID_SIZE//2,GRID_SIZE//2,1),replace=True, shape=(NUM_POINTS,))
-Y_R = jax.random.choice( random.key(2132), a = jnp.arange(-GRID_SIZE//2,GRID_SIZE//2,1),replace=True, shape=(NUM_POINTS,))
-PARTICLE_LOCS = jnp.column_stack((X_R, Y_R))
-PARTICLE_CHGS = jax.random.choice( random.key(33315),\
-                                  a = jnp.asarray((-1,1)),
-                                  replace=True, shape=(NUM_POINTS,))
+class PotentialDisplay:
+    def __init__(self, gridsize: int = 32, numpoints: int = 20, numnegative: int = 1, seed:int = 0):
+        self.GRID_SIZE = gridsize
+        self.GRID_X, self.GRID_Y = jnp.indices([self.GRID_SIZE, self.GRID_SIZE], dtype=jnp.float32)
+        self.GRID_X -= jnp.median(self.GRID_X)
+        self.GRID_Y -= jnp.median(self.GRID_Y)
+        self.FLAT_X = self.GRID_X.flatten()
+        self.FLAT_Y = self.GRID_Y.flatten()
+        self.COORD_X = jnp.unique(self.FLAT_X)
+        self.COORD_Y = jnp.unique(self.FLAT_Y)
+        self.NUM_POINTS = numpoints
+        self.NUMNEG = numnegative
 
-def electric_field_of_particle(x0:jnp.ndarray=PARTICLE_LOCS[0],
-                               x0_charge:float =PARTICLE_CHGS[0],
-                               x_grid:jnp.ndarray=GRID_X,
-                               y_grid:jnp.ndarray=GRID_Y) -> jnp.ndarray:
-    """
-    FUnction to calculate the electric field of particle at all points
-    :param x0:
-    :param y0:
-    :param charge:partA
+        key = jax.random.key(31212417 + seed)
+        self.X_R = jax.random.choice(key, a=jnp.arange(-self.GRID_SIZE // 2, self.GRID_SIZE // 2, 1), replace=True,
+                                     shape=(self.NUM_POINTS,))
+        self.Y_R = jax.random.choice(random.key(seed+1), a=jnp.arange(-self.GRID_SIZE // 2, self.GRID_SIZE // 2, 1),
+                                     replace=True, shape=(self.NUM_POINTS,))
+        self.PARTICLE_LOCS = jnp.column_stack((self.X_R, self.Y_R))
+        self.PARTICLE_CHGS = jnp.ones(self.NUM_POINTS)
+        if numnegative > 0:
+            self.PARTICLE_CHGS = self.PARTICLE_CHGS.at[jax.random.choice(random.key(seed+41),
+                                               a=jnp.arange(len(self.PARTICLE_CHGS)), shape=(numnegative,))].set(-1)
 
-    :return:
-    """
-    xs = x_grid.flatten() - x0[0]
-    ys = y_grid.flatten() - x0[1]
 
-    r = jnp.column_stack((xs,ys))
-    # print(f'{r=}')
-    mags = xs**2 + ys**2
-    # print(f'{mags=}')
-    E = x0_charge * r / jnp.expand_dims(mags, 1)
-    return E
+    def electric_field_of_particle(self, x0: jnp.ndarray, x0_charge: jnp.ndarray) -> jnp.ndarray:
+        """
 
-def total_field_at_point(particles, charges, x_grid,y_grid):
+        :param x0:
+        :param x0_charge:
+        :return:
+        """
 
-    """
-    Sum over
-    :param particles:
-    :param charges:
-    :return:
-    """
-    total_field = 0
-    for idx, particle_loc in enumerate(particles):
-      total_field += electric_field_of_particle(x0=particle_loc,
-                                                x0_charge=charges[idx],
-                                   x_grid=x_grid, y_grid=y_grid)
-    return total_field
+        x_grid = self.GRID_X
+        y_grid = self.GRID_Y
+        xs = x_grid.flatten() - x0[0]
+        ys = y_grid.flatten() - x0[1]
 
-def potential_of_particle(x0:jnp.ndarray=PARTICLE_LOCS[0],
-                               x0_charge:float =PARTICLE_CHGS[0],
-                               x_grid:jnp.ndarray=GRID_X,
-                               y_grid:jnp.ndarray=GRID_Y) -> jnp.ndarray:
-    """
-    FUnction to calculate the electric field of particle at all points
-    :param x0:
-    :param y0:
-    :param charge:partA
+        r = jnp.column_stack((xs, ys))
+        # print(f'{r=}')
+        mags = xs ** 2 + ys ** 2
+        # print(f'{mags=}')
+        e_field = x0_charge * r / jnp.expand_dims(mags, 1)
+        return e_field
 
-    :return:
-    """
-    xs = x_grid - x0[0]
-    ys = y_grid - x0[1]
+    def total_field_at_point(self):
 
-    
-    # print(f'{r=}')
-    mags = jnp.sqrt(xs**2 + ys**2)
-    # print(f'{mags=}')
-    V = x0_charge * (1 / mags)
-    return V
-#
+        """
+        Sum over
+        :param particles:
+        :param charges:
+        :return:
+        """
+        total_field = 0
+        for idx, particle_loc in enumerate(self.PARTICLE_LOCS):
+            total_field += self.electric_field_of_particle(x0=particle_loc, x0_charge=self.PARTICLE_CHGS[idx])
+        return total_field
 
-def potential_at_point(particles, charges, x_grid, y_grid):
+    def potential_of_particle(self, x0: jnp.ndarray, x0_charge: jnp.ndarray)-> jnp.ndarray:
+        """
+        FUnction to calculate the electric field of particle at all points
+        :param x0:
+        :param y0:
+        :param charge:partA
 
-    """
-    Sum over
-    :param particles:
-    :param charges:
-    :return:
-    """
-    total_potential = 0
-    for idx, particle_loc in enumerate(particles):
-      total_potential += potential_of_particle(x0=particle_loc,
-                                                x0_charge=charges[idx],
-                                   x_grid=x_grid, y_grid=y_grid)
-    return total_potential
+        :return:
+        """
+        x_grid = self.GRID_X
+        y_grid = self.GRID_Y
+        xs = x_grid - x0[0]
+        ys = y_grid - x0[1]
+
+        # print(f'{r=}')
+        mags = jnp.sqrt(xs ** 2 + ys ** 2)
+        # print(f'{mags=}')
+        potential = x0_charge * (1 / mags)
+        return potential
+
+    #
+
+    def potential_at_point(self):
+
+        """
+        Sum over
+        :param particles:
+        :param charges:
+        :return:
+        """
+        total_potential = 0
+        for idx, particle_loc in enumerate(self.PARTICLE_LOCS):
+            total_potential += self.potential_of_particle(x0=particle_loc,
+                                                     x0_charge=self.PARTICLE_CHGS[idx])
+        return total_potential
+
+    def plot(self, contours=True):
+        fig, ax = plt.subplots(figsize=(16, 9), dpi=270)
+        ax.set_aspect(1)
+
+        partC = self.total_field_at_point()
+        partD = self.potential_at_point()
+
+        if contours:
+            ctr0 = ax.contourf(self.COORD_X, self.COORD_Y, partD.T)
+            plt.colorbar(ctr0, ax=ax)
+
+
+        for _, j in enumerate(self.FLAT_X):
+            ax.arrow(x=j, y=self.FLAT_Y[_], dx=partC[_, 0], dy=partC[_, 1])
+        pass
+        plt.savefig("potential_display.png")
+        plt.show()
+
+        plt.close()
