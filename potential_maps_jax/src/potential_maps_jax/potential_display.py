@@ -33,13 +33,12 @@ class PotentialDisplay:
                                                 a=jnp.arange(len(self.PARTICLE_CHGS)),
                                                 shape=(numnegative,))
             if quarternegative:
-                print(self.PARTICLE_CHGS)
-                qn_update = jnp.array([negative_points[_] for _, x in enumerate(quarter_negative_index) if x])
-                self.PARTICLE_CHGS = self.PARTICLE_CHGS.at[qn_update].set(-1)
-                print(self.PARTICLE_CHGS)
-                print(self.PARTICLE_LOCS)
+  
+                qn_update = jnp.array(quarter_negative_index)
+                self.PARTICLE_CHGS = self.PARTICLE_CHGS.at[quarter_negative_index].set(-1)
             else:
                 self.PARTICLE_CHGS = self.PARTICLE_CHGS.at[negative_points].set(-1)
+        self.PARTICLE_CHGS /= jnp.linalg.norm(self.PARTICLE_CHGS)
 
     def electric_field_of_particle(self, x0: jnp.ndarray, x0_charge: jnp.ndarray) -> jnp.ndarray:
         """
@@ -129,9 +128,3 @@ class PotentialDisplay:
 
         plt.show()
         plt.close()
-
-
-pd2 = PotentialDisplay(gridsize=32, numpoints=24, numnegative=8,quarternegative=False,seed=141)
-pd2.plot(to_save=True)
-pd2 = PotentialDisplay(gridsize=32, numpoints=24, numnegative=8,quarternegative=True,seed=141)
-pd2.plot(to_save=True, savename="qn_display.png")
