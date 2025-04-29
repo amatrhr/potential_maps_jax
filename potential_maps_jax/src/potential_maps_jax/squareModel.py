@@ -9,15 +9,15 @@ import optax
 import random
 import jax.numpy as jnp
 from sklearn.metrics import r2_score
-learning_rate = 0.05
-momentum = 0.9
-epochs = 256
-batch_size = 64
+learning_rate = 0.03
+momentum = 0.35
+epochs = 1024
+batch_size = 128
 
-RESOLUTION = 12
+RESOLUTION = 64
 SIZE  = 21
-NOISE_LO = -3.
-NOISE_HI = 3.
+NOISE_LO = -.2
+NOISE_HI = .3
 
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
@@ -36,21 +36,23 @@ class LinearNN(nnx.Module):
     """A simple CNN model."""
     def __init__(self, *, rngs:nnx.Rngs):
 
-        self.linear1 = nnx.Linear(2, 256, rngs=rngs)
+        self.linear1 = nnx.Linear(2, 1025, rngs=rngs)
         # dropout
-        self.linear2 = nnx.Linear(256, 256, rngs=rngs)
+        self.linear2 = nnx.Linear(1025, 256, rngs=rngs)
         self.linear3 = nnx.Linear(256, 256, rngs=rngs)
-        self.dropout = nnx.Dropout(0.5, rngs=rngs)
-        self.linear3000 = nnx.Linear(256, 2, rngs=rngs)
-        self.smalinear = nnx.Linear(2,2,rngs=rngs)
+        self.dropout = nnx.Dropout(0.25, rngs=rngs)
+        self.linear3000 = nnx.Linear(256, 64, rngs=rngs)
+        self.smalinear = nnx.Linear(64,2,rngs=rngs)
 
 
 
     def __call__(self, x):
         # x = x.reshape(x.shape[0], -1) # flatten
         x = self.linear1(x)
+        x = self.linear2(x)
+        x = self.dropout(x)
         x = self.linear3000(x)
-        x = nnx.gelu(x)
+        # x = nnx.gelu(x)
         x = nnx.standardize(x)
 
         x = self.smalinear(x)
@@ -134,13 +136,23 @@ ax.legend()
 plt.show()
 plt.close()
 
-check1 = model(test_ds[0][13])
-check2 = model(test_ds[1][13])
+check1 = model(test_ds[0][131])
 
 fig ,ax = plt.subplots()
 ax.set_aspect(1)
-ax.scatter(test_ds[0][13][:,0], test_ds[0][13][:,1])
-ax.scatter(test_ds[1][13][:,0], test_ds[1][13][:,1])
+ax.scatter(test_ds[0][131][:,0], test_ds[0][131][:,1])
+ax.scatter(test_ds[1][131][:,0], test_ds[1][131][:,1])
+ax.scatter(check1[:,0], check1[:,1])
+plt.show()
+plt.close()
+
+
+check1 = model(test_ds[0][61])
+
+fig ,ax = plt.subplots()
+ax.set_aspect(1)
+ax.scatter(test_ds[0][61][:,0], test_ds[0][61][:,1])
+ax.scatter(test_ds[1][61][:,0], test_ds[1][61][:,1])
 ax.scatter(check1[:,0], check1[:,1])
 plt.show()
 plt.close()

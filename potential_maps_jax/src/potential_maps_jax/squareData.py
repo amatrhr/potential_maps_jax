@@ -68,9 +68,9 @@ class SquareData:
 
 def make_squares_dataset(n_train:int=512, n_test:int=256, noise_lo:float=-2., noise_hi:float=2.,
                  resolution:int=16, size:float=16.)->jnp.array:
-        train_data = (SquareData(size=size, resolution=resolution, noise_lo=noise_lo, noise_hi=noise_hi).makedata()
+        train_data = (SquareData(size=size, resolution=resolution, noise_lo=noise_lo, noise_hi=noise_hi, seed=x+9).makedata()
                       for x in range(n_train))
-        test_data = (SquareData(size=size, resolution=resolution, noise_lo=noise_lo, noise_hi=noise_hi).makedata()
+        test_data = (SquareData(size=size, resolution=resolution, noise_lo=noise_lo, noise_hi=noise_hi, seed=x + 187961).makedata()
                      for x in range(n_test))
         return train_data, test_data
 
