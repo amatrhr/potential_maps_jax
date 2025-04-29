@@ -4,6 +4,7 @@ from jax import random
 from jax import numpy as jnp
 import matplotlib.pyplot as plt
 from functools import partial
+import matplotlib.pyplot as plt
 
 
 class PotentialDisplay:
