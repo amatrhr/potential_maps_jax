@@ -9,14 +9,14 @@ import optax
 import random
 import jax.numpy as jnp
 from sklearn.metrics import r2_score
-learning_rate = 0.03
-momentum = 0.35
-epochs = 1024
-batch_size = 128
+learning_rate = 0.00625
+momentum = 0.75
+epochs = 512
+batch_size = 256
 
 RESOLUTION = 64
 SIZE  = 21
-NOISE_LO = -.2
+NOISE_LO = -.3
 NOISE_HI = .3
 
 from IPython.display import clear_output
@@ -40,10 +40,10 @@ class LinearNN(nnx.Module):
         # dropout
         self.linear2 = nnx.Linear(1025, 256, rngs=rngs)
         self.linear3 = nnx.Linear(256, 256, rngs=rngs)
-        self.dropout = nnx.Dropout(0.25, rngs=rngs)
-        self.linear3000 = nnx.Linear(256, 64, rngs=rngs)
-        self.smalinear = nnx.Linear(64,2,rngs=rngs)
-
+        self.dropout = nnx.Dropout(0.95, rngs=rngs)
+        self.linear3000 = nnx.Linear(256, 512, rngs=rngs)
+        self.smalinear = nnx.Linear(512,2,rngs=rngs)
+        # the in_feature dimension here was crucial to
 
 
     def __call__(self, x):
@@ -52,10 +52,11 @@ class LinearNN(nnx.Module):
         x = self.linear2(x)
         x = self.dropout(x)
         x = self.linear3000(x)
-        # x = nnx.gelu(x)
+
         x = nnx.standardize(x)
 
         x = self.smalinear(x)
+        x = SIZE* nnx.sigmoid(x) # this was a very important step for this problem.
         return x
 
 # instantiate
@@ -67,7 +68,7 @@ def loss_fn(model: LinearNN, batch):
     predictions = model(batch[0])
     loss = optax.losses.cosine_distance(
         predictions=predictions, targets=batch[1]
-    ).max()
+    ).mean()
     return loss, predictions
 
 @nnx.jit
@@ -138,21 +139,44 @@ plt.close()
 
 check1 = model(test_ds[0][131])
 
-fig ,ax = plt.subplots()
-ax.set_aspect(1)
-ax.scatter(test_ds[0][131][:,0], test_ds[0][131][:,1])
-ax.scatter(test_ds[1][131][:,0], test_ds[1][131][:,1])
-ax.scatter(check1[:,0], check1[:,1])
+fig ,ax = plt.subplots(2,1)
+ax[0].set_aspect(1)
+ax[1].set_aspect(1)
+ax[0].scatter(test_ds[0][131][:,0], test_ds[0][131][:,1], alpha=0.67, label = "test X")
+ax[0].scatter(test_ds[1][131][:,0], test_ds[1][131][:,1], alpha=0.67, label = "test Y")
+ax[0].scatter(check1[:,0], check1[:,1], alpha=0.67, label = "predicted Y")
+
+ax[1].scatter(check1[:,0], check1[:,1],c="red", label="predicted Y")
+fig.legend(loc='outside upper right')
 plt.show()
 plt.close()
 
 
-check1 = model(test_ds[0][61])
+check1 = model(test_ds[0][167])
 
-fig ,ax = plt.subplots()
-ax.set_aspect(1)
-ax.scatter(test_ds[0][61][:,0], test_ds[0][61][:,1])
-ax.scatter(test_ds[1][61][:,0], test_ds[1][61][:,1])
-ax.scatter(check1[:,0], check1[:,1])
+fig ,ax = plt.subplots(2,1)
+ax[0].set_aspect(1)
+ax[1].set_aspect(1)
+ax[0].scatter(test_ds[0][167][:,0], test_ds[0][167][:,1], alpha=0.67, label = "test X")
+ax[0].scatter(test_ds[1][167][:,0], test_ds[1][167][:,1], alpha=0.67, label = "test Y")
+ax[0].scatter(check1[:,0], check1[:,1], alpha=0.67, label = "predicted Y")
+
+ax[1].scatter(check1[:,0], check1[:,1],c="red", label="predicted Y")
+fig.legend(loc='outside upper right')
+plt.show()
+plt.close()
+
+
+check1 = model(test_ds[0][41])
+
+fig ,ax = plt.subplots(2,1)
+ax[0].set_aspect(1)
+ax[1].set_aspect(1)
+ax[0].scatter(test_ds[0][41][:,0], test_ds[0][41][:,1], alpha=0.67, label = "test X")
+ax[0].scatter(test_ds[1][41][:,0], test_ds[1][41][:,1], alpha=0.67, label = "test Y")
+ax[0].scatter(check1[:,0], check1[:,1], alpha=0.67, label = "predicted Y")
+
+ax[1].scatter(check1[:,0], check1[:,1],c="red", label="predicted Y")
+fig.legend(loc='outside upper right')
 plt.show()
 plt.close()
