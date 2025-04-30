@@ -10,14 +10,14 @@ import random
 import jax.numpy as jnp
 from sklearn.metrics import r2_score
 learning_rate = 0.00625
-momentum = 0.75
+momentum = 0.35
 epochs = 512
 batch_size = 256
 
 RESOLUTION = 64
 SIZE  = 21
-NOISE_LO = -.3
-NOISE_HI = .3
+NOISE_LO = -1
+NOISE_HI = 1
 
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
@@ -40,9 +40,9 @@ class LinearNN(nnx.Module):
         # dropout
         self.linear2 = nnx.Linear(1025, 256, rngs=rngs)
         self.linear3 = nnx.Linear(256, 256, rngs=rngs)
-        self.dropout = nnx.Dropout(0.95, rngs=rngs)
-        self.linear3000 = nnx.Linear(256, 512, rngs=rngs)
-        self.smalinear = nnx.Linear(512,2,rngs=rngs)
+        self.dropout = nnx.Dropout(0.75, rngs=rngs)
+        self.linear3000 = nnx.Linear(256, 2048, rngs=rngs)
+        self.smalinear = nnx.Linear(2048,2,rngs=rngs)
         # the in_feature dimension here was crucial to
 
 
